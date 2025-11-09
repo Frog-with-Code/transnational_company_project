@@ -6,7 +6,6 @@ import json
 
 class EmployeeFactory:
     professions = {
-        "engineer": Engineer,
         "it_specialist": ITSpecialist,
         "accountant": Accountant,
         "seller": Seller,

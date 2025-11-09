@@ -1,10 +1,12 @@
 from abc import ABC, abstractmethod
-from .enums import EmployeeClassification, EmployeeRole, ITSpecialization
+from .enums import *
+from datetime import date, timedelta
+from random import random
 
 
 class AbstractEmployee(ABC):
-    specific_fields : set[str] = set()
-    
+    specific_fields: set[str] = set()
+
     def __init__(
         self,
         *,
@@ -15,7 +17,6 @@ class AbstractEmployee(ABC):
         classification: EmployeeClassification,
         experience: int,
         salary: int,
-        **specific_params
     ) -> None:
         self.name = name
         self.surname = surname
@@ -33,217 +34,233 @@ class AbstractEmployee(ABC):
     def get_profession(self):
         pass
 
+    @abstractmethod
+    def can_work_remotely(self) -> bool:
+        pass
+
     def get_fields(self) -> dict:
-        return {
+        fields = {
             "name": self.name,
             "surname": self.surname,
-            "personal_id": self.id,
+            "personal_id": self.personal_id,
             "profession": self.get_profession(),
-            "role": self.role,
-            "classification": self.classification,
+            "role": self.role.value,
+            "classification": self.classification.value,
             "salary": self.salary,
+            "experience": self.experience,
         }
-        
+
+        for field_name in self.specific_fields:
+            value = getattr(self, field_name)
+            if hasattr(value, "value"):
+                fields[field_name] = value.value
+            else:
+                fields[field_name] = value
+
+        return fields
+
     def get_full_name(self) -> str:
-        return self.name + self.surname
-    
+        return f"{self.name} {self.surname}"
+
     @classmethod
     def get_specific_fields(cls):
         return cls.specific_fields
 
 
-class Engineer(AbstractEmployee):
+class OfficeEmployee(AbstractEmployee, ABC):
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
+
+    def can_work_remotely(self):
+        return True
+
+
+class FieldEmployee(AbstractEmployee, ABC):
+    def __init__(self, workwear: list[str], medical_check_date: date, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.workwear = workwear[:]
+        self.medical_check_date = medical_check_date
+
+    def can_work_remotely(self) -> bool:
+        return False
+
+    def is_medically_fir(self) -> bool:
+        return self.medical_check_date + timedelta(days=365) >= date.today()
+
+
+class ITSpecialist(OfficeEmployee):
+    specific_fields = {"programming_langs", "specialization", "qualification_level"}
+
     def __init__(
         self,
         *,
-        name: str,
-        surname: str,
-        personal_id: str,
-        role: EmployeeRole,
-        classification: EmployeeClassification,
-        experience: int,
-        salary: int
-    ) -> None:
-        super().__init__(
-            name=name,
-            surname=surname,
-            personal_id=personal_id,
-            role=role,
-            classification=classification,
-            experience=experience,
-            salary=salary,
-        )
-
-    def get_profession(self):
-        return "engineer"
-
-
-class ITSpecialist(Engineer):
-    specific_fields = {
-        "programming_langs",
-        "specialization"
-    }
-    
-    def __init__(
-        self,
-        *,
-        name: str,
-        surname: str,
-        personal_id: str,
-        role: EmployeeRole,
-        classification: EmployeeClassification,
-        experience: int,
-        salary: int,
         specialization: ITSpecialization | str,
-        programming_langs: list[str]
+        programming_langs: list[str],
+        qualification_level: ITQualificationLevel | str,
+        **kwargs,
     ) -> None:
-        super().__init__(
-            name=name,
-            surname=surname,
-            personal_id=personal_id,
-            role=role,
-            classification=classification,
-            experience=experience,
-            salary=salary,
-        )
+        super().__init__(**kwargs)
+
         if isinstance(specialization, str):
             self.specialization = ITSpecialization(specialization)
-        else : self.specialization = specialization
-        self.programming_langs = programming_langs
-        
+        else:
+            self.specialization = specialization
+
+        self.programming_langs = programming_langs[:]
+
+        if isinstance(qualification_level, str):
+            self.it_qualification_level = ITQualificationLevel(qualification_level)
+        else:
+            self.it_qualification_level = qualification_level
+
+        self.active_projects: set[str] = set()
 
     def get_profession(self) -> str:
         return "it_specialist"
-    
+
+    def assign_project(self, project: str) -> None:
+        self.active_projects.add(project)
+
+    def complete_project(self, project: str) -> None:
+        self.active_projects.discard(project)
+
+    def get_active_projects_amount(self) -> int:
+        return len(self.active_projects)
+
     def work(self):
-        print("Do some staff")
+        if self.get_active_projects_amount() < 2:
+            print("*Lazy printing*")
+        else:
+            print("*Pressing keys in panic*")
 
 
-class Accountant(AbstractEmployee):
+class Accountant(OfficeEmployee):
+    specific_fields = {"erp_systems", "certifications"}
+
     def __init__(
         self,
         *,
-        name: str,
-        surname: str,
-        personal_id: str,
-        role: EmployeeRole,
-        classification: EmployeeClassification,
-        experience: int,
-        salary: int
+        erp_systems: list[str],
+        certifications: list[FinancialQualification] | list[str],
+        **kwargs,
     ) -> None:
-        super().__init__(
-            name=name,
-            surname=surname,
-            personal_id=personal_id,
-            role=role,
-            classification=classification,
-            experience=experience,
-            salary=salary,
-        )
+        super().__init__(**kwargs)
+        self.erp_systems = erp_systems[:]
+        self.certifications = [
+            FinancialQualification(cert) if isinstance(cert, str) else cert
+            for cert in certifications
+        ]
+
+        self.audit_status: str = "none"
 
     def get_profession(self) -> str:
         return "accountant"
 
+    def can_handle_audit(self) -> bool:
+        audit_certs = {"CPA", "ACCA", "CIA"}
+        return any(cert in audit_certs for cert in self.certifications)
 
-class Seller(AbstractEmployee):
-    def __init__(
-        self,
-        *,
-        name: str,
-        surname: str,
-        personal_id: str,
-        role: EmployeeRole,
-        classification: EmployeeClassification,
-        experience: int,
-        salary: int
-    ) -> None:
-        super().__init__(
-            name=name,
-            surname=surname,
-            personal_id=personal_id,
-            role=role,
-            classification=classification,
-            experience=experience,
-            salary=salary,
-        )
+    def start_audit(self) -> bool:
+        if self.can_handle_audit():
+            self.audit_status = "in_progress"
+        # TODO error
+
+    def end_audit(self) -> bool:
+        if self.audit_status == "in_progress":
+            self.audit_status = "none"
+        else:
+            print("There is not active audit")
+
+    def work(self):
+        "*Trying to avoid prison*"
+
+
+class Seller(OfficeEmployee):
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
 
     def get_profession(self) -> str:
         return "seller"
+    
+    def work(self) -> None:
+        print("*Trying to sell a pen*")
 
 
-class HRSpecialist(AbstractEmployee):
-    def __init__(
-        self,
-        *,
-        name: str,
-        surname: str,
-        personal_id: str,
-        role: EmployeeRole,
-        classification: EmployeeClassification,
-        experience: int,
-        salary: int
-    ) -> None:
-        super().__init__(
-            name=name,
-            surname=surname,
-            personal_id=personal_id,
-            role=role,
-            classification=classification,
-            experience=experience,
-            salary=salary,
-        )
+class HRSpecialist(OfficeEmployee):
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
 
     def get_profession(self) -> str:
         return "hr_specialist"
+    
+    def work(self) -> None:
+        print("*Talking with some strangers*")
 
 
-class Driver(AbstractEmployee):
+class Driver(FieldEmployee):
+    specific_fields = {"license_category", "license_expire_date", "routes"}
+
     def __init__(
-        self,
-        *,
-        name: str,
-        surname: str,
-        personal_id: str,
-        role: EmployeeRole,
-        classification: EmployeeClassification,
-        experience: int,
-        salary: int
+        self, *, license_category: str, license_expire_date: date, **kwargs
     ) -> None:
-        super().__init__(
-            name=name,
-            surname=surname,
-            personal_id=personal_id,
-            role=role,
-            classification=classification,
-            experience=experience,
-            salary=salary,
-        )
+        super().__init__(**kwargs)
+        self.license_category = license_category
+        self.license_expire_date = license_expire_date
+
+        self.accidents: int = 0
+        self.routes: set[str] = set()
 
     def get_profession(self) -> str:
         return "driver"
 
+    def is_valid_license(self) -> date:
+        return self.license_expire_date > date.today()
 
-class Cleaner(AbstractEmployee):
+    def work(self) -> None:
+        accident_probability = 1 / (100 * self.experience)
+        if random() < accident_probability:
+            self.accidents += 1
+        print("Wrrooom-wrroom")
+
+    def assign_route(self, routes: str | list[str] | set[str]) -> None:
+        if isinstance(routes, str):
+            self.routes.add(routes)
+        else:
+            self.routes.update(routes)
+
+    def unassign_route(self, routes: str | list[str] | set[str]) -> None:
+        if isinstance(routes, str):
+            self.routes.discard(routes)
+        else:
+            self.routes.difference_update(routes)
+
+
+class Cleaner(FieldEmployee):
+    specific_fields = {"skills", "hazardous_waste_trained"}
+
     def __init__(
-        self,
-        *,
-        name: str,
-        surname: str,
-        personal_id: str,
-        role: EmployeeRole,
-        classification: EmployeeClassification,
-        experience: int,
-        salary: int
+        self, *, skills: list[str], hazardous_waste_trained: bool, **kwargs
     ) -> None:
-        super().__init__(
-            name=name,
-            surname=surname,
-            personal_id=personal_id,
-            role=role,
-            classification=classification,
-            experience=experience,
-            salary=salary,
-        )
+        super().__init__(**kwargs)
+        self.skills = skills[:]
+        self.hazardous_waste_trained = hazardous_waste_trained
+
+        self.equipment: set[str] = set()
 
     def get_profession(self) -> str:
         return "cleaner"
+
+    def give_equipment(self, tool: str) -> None:
+        self.equipment.add(tool)
+
+    def take_equipment(self, tool: str) -> None:
+        self.equipment.discard(tool)
+
+    def has_equipment(self) -> bool:
+        return len(self.equipment) != 0
+
+    def work(self):
+        broken_tool_probability = 1 / (100 * self.experience)
+        if random() < broken_tool_probability and self.has_equipment():
+            self.equipment.pop()
+        print("*Doing cleaning*")

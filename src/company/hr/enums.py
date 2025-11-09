@@ -31,3 +31,16 @@ class ITSpecialization(Enum):
     DATA = "Data"
     SECURITY = "Security"
     
+class FinancialQualification(Enum):
+    ACCA = "ACCA"
+    CIMA = "CIMA"
+    ACPM = "ACPM"
+    CPA = "CPA"
+    CIA = "CIA"
+    CFA = "CFA"
+    
+class ITQualificationLevel(Enum):
+    JUNIOR = "JUNIOR"
+    MIDDLE = "MIDDLE"
+    SENIOR = "SENIOR"
+    LEAD = "LEAD"
