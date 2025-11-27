@@ -7,6 +7,7 @@ from datetime import date
 from ..common.enums import normalize_enum
 from math import isclose
 from dataclasses import dataclass
+from cargo_manager import CargoManager
 
 
 class AbstractTransport(ABC):
@@ -48,9 +49,7 @@ class AbstractTransport(ABC):
 
         self.workers: set[AbstractEmployee] = set()
         self.status: TransportStatus = TransportStatus.AVAILABLE
-        self.cargo: dict[AbstractProduct, int] = dict()
-        self.free_space: float = self.capacity
-        self.free_mass: float = self.carrying_capacity
+        self._cargo_manager = CargoManager(self.capacity, self.carrying_capacity)
 
     def get_model_info(self) -> dict:
         return {
@@ -77,44 +76,33 @@ class AbstractTransport(ABC):
     def calculate_fuel_cost(self, distance: float, fuel_price: float) -> float:
         return distance / 100 * self.fuel_consumption * fuel_price
 
+    def can_load(self) -> bool:
+        return self._cargo_manager.can_load()
+
+    def can_unload(self) -> bool:
+        return self._cargo_manager.can_unload()
+
     def load_products(
         self, products: dict[AbstractProduct, int], fill_rate: float
     ) -> bool:
         self.status = TransportStatus.LOADING
-        free_space = self.capacity * fill_rate
-        required_space = 0
-        required_mass = 0
-        for product in products.keys():
-            required_space += product.volume * products[product]
-            required_mass += product.mass * products[product]
-
-        if required_space <= free_space and required_mass <= self.carrying_capacity:
-            for product in products.keys():
-                if product in self.cargo:
-                    self.cargo[product] += products[product]
-                else: self.cargo[product] = products[product]
-
-            self.free_mass = self.free_mass - required_mass
-            self.free_space = self.free_space - required_space
-            return True
-        else:
-            return False
+        success = self._cargo_manager.load_products(products, fill_rate)
+        (
+            print("Goods was successfully loaded")
+            if success
+            else print("Loading is impossible")
+        )
+        return success
 
     def unload_products(self, products: dict[AbstractProduct, int]) -> bool:
         self.status = TransportStatus.UNLOADING
-        if not set(products) - set(self.cargo):
-            return False
-        target_products = self.cargo & products
-        for product in target_products:
-            if self.cargo[target_products] < products[product]:
-                return False
-
-        for product in target_products:
-            self.cargo[product] = self.cargo[product] - products[product]
-            self.free_space -= product.volume * products[product]
-            self.free_mass -= product.mass * products[product]
-
-        return True
+        success = self._cargo_manager.unload_products(products)
+        (
+            print("Goods was successfully unloaded")
+            if success
+            else print("Unloading is impossible")
+        )
+        return success
 
     def delivery(self, destination: Location) -> None:
         self.status = TransportStatus.IN_TRANSIT
@@ -152,32 +140,40 @@ class Train(AbstractTransport):
                 self._add_wagon_capacities(wagon)
         self.track_gauge = track_gauge
 
-    def _add_wagon_capacities(self, wagon: Wagon) -> None:
+    def _capture_cargo(self, wagon: Wagon) -> None:
         self.capacity += wagon.capacity
         self.carrying_capacity += wagon.carrying_capacity
+        self._cargo_manager.free_mass += wagon.capacity
+        self._cargo_manager.free_mass += wagon.carrying_capacity
+
+    def _release_cargo(self, wagon: Wagon) -> None:
+        self.capacity -= wagon.capacity
+        self.carrying_capacity -= wagon.carrying_capacity
+        self._cargo_manager.free_space -= wagon.capacity
+        self._cargo_manager.free_mass -= wagon.carrying_capacity
 
     def is_tracks_compatible(self, track_gauge: float) -> bool:
         return isclose(self.track_gauge, track_gauge)
 
     def attach_wagon(self, wagon: Wagon) -> None:
         self.wagon_num += 1
-        self._add_wagon_capacities(wagon)
+        self.wagons.append(wagon)
+        self._capture_cargo(wagon)
 
     def detach_wagon(
         self, wagon_capacity: float, wagon_carrying_capacity: float
     ) -> Wagon:
         if (
-            wagon_capacity < self.free_space
-            and wagon_carrying_capacity < self.free_mass
+            wagon_capacity < self._cargo_manager.free_space
+            and wagon_carrying_capacity < self._cargo_manager.free_mass
         ):
             for wagon in self.wagons:
                 if isclose(wagon.capacity, wagon_capacity) and isclose(
                     wagon.carrying_capacity, wagon_carrying_capacity
                 ):
                     self.wagons.remove(wagon)
-                    self.capacity -= wagon.capacity
-                    self.carrying_capacity -= wagon.carrying_capacity
                     self.wagon_num -= 1
+                    self._release_cargo(wagon)
                     return wagon
         return None
 
@@ -196,14 +192,15 @@ class Plane(AbstractTransport):
         self.max_height = max_height
         self.max_range = max_range
         self.runway_length_required = runway_length_required
-        
+
     def can_take_off(self, runway_length: float) -> bool:
         return runway_length >= self.runway_length_required
 
     def calculate_flight_range(self) -> float:
-        free_percent = (self.free_space / self.capacity)
+        free_percent = self._cargo_manager.free_mass / self.carrying_capacity
         factor = max(free_percent, 0.5)
         return self.max_range * factor
+
 
 class Car(AbstractTransport):
     specific_fields = {"fuel_type", "is_refrigerated"}
@@ -212,7 +209,7 @@ class Car(AbstractTransport):
         super().__init__(**kwargs)
         self.fuel_type = normalize_enum(fuel_type, CarFuelType)
         self.is_refrigerated = is_refrigerated
-        
+
     def is_fuel_compatible(self, fuel_type: CarFuelType) -> bool:
         return self.fuel_type == fuel_type
 
@@ -224,6 +221,6 @@ class Ship(AbstractTransport):
         super().__init__(**kwargs)
         self.fuel = normalize_enum(ship_type, ShipType)
         self.max_draft = max_draft
-        
+
     def can_draft(self, chanel_depth: float) -> bool:
-        return self.max_draft > chanel_depth 
+        return self.max_draft > chanel_depth

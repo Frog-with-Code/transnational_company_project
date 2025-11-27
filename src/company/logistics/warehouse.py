@@ -1,27 +1,65 @@
 from ..products.products import AbstractProduct
 from ..hr.employees import AbstractEmployee
 from transport import AbstractTransport
+from cargo_manager import CargoManager
 
 
 class Warehouse:
-    def __init__(self, capacity: float, workers: set[AbstractEmployee] | None) -> None:
+    def __init__(self, capacity: float) -> None:
         self.capacity = capacity
-        if workers is None:
-            self.workers = []
-        else:
-            self.workers = workers.copy()
-
-        self.products: dict[AbstractProduct, int] = dict()
+        self.carrying_capacity = float("inf")
+        self._workers = {}
+        self._cargo_manager = CargoManager(self.capacity, self.carrying_capacity)
 
     def load_transport(
-        self, transport: AbstractTransport, target_products: dict[AbstractProduct, int]
+        self, transport: AbstractTransport, products: dict[AbstractProduct, int]
     ) -> bool:
-        if not set(target_products) - set(self.products):
+        if self._cargo_manager.can_unload(products) and transport.can_load(products):
+            self._cargo_manager.unload_products(products)
+            transport.load_products(products)
+            print(
+                "Product exchange between warehouse and transport was successfully ended"
+            )
+            return True
+        else:
+            print("Transport loading is impossible!")
             return False
 
-        for product in target_products.keys():
-            if target_products[product] < self.products[product]:
-                return False
-            
-        if transport.load_products(target_products):
-            pass
+    def unload_transport(
+        self, transport: AbstractTransport, products: dict[AbstractProduct, int]
+    ) -> bool:
+        success = self._cargo_manager.can_load(products) and transport.can_unload(
+            products
+        )
+        if success:
+            self._cargo_manager.load_products(products)
+            transport.unload_products(products)
+            print(
+                "Product exchange between warehouse and transport was successfully ended"
+            )
+        else:
+            print("Transport unloading is impossible!")
+
+        return success
+
+    def supply(self, products: dict[AbstractProduct], int) -> bool:
+        success = self._cargo_manager.load_products(products)
+        print(
+            "Supplement was successfully placed"
+            if success
+            else "Supplement can't be placed in the warehouse"
+        )
+        return success
+
+    def is_empty(self) -> bool:
+        empty = self._cargo_manager.is_empty()
+        print("Warehouse is empty") if empty else print("Warehouse is not empty")
+        return empty
+    
+    def get_product_names(self) -> list[str]:
+        return self._cargo_manager.get_product_names()
+    
+    @property
+    def cargo(self) -> dict[AbstractProduct, int]:
+        return self._cargo_manager.cargo
+    
