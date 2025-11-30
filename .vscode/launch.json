@@ -6,9 +6,9 @@
             "name": "Python Debugger: Current Project",
             "type": "debugpy",
             "request": "launch",
-            "module": "src.some_module",
+            "module": "src.company",
             "console": "integratedTerminal",
-            "cwd": "${workspaceFolder}"
+            "cwd": "${workspaceFolder}",
         }
     ]
 }

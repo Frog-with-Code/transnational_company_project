@@ -3,9 +3,17 @@
     "python.testing.pytestEnabled": false,
     "pythonTestExplorer.testFramework": "pytest",
     "cSpell.words": [
+        "АССA",
+        "ACCA",
+        "ACPM",
+        "CIMA",
         "pythonpath",
-        "viewcode"
+        "Rollker",
+        "viewcode",
+        "workwear",
+        "wrroom",
+        "Wrrooom"
     ],
-    "python.defaultInterpreterPath": ".../.conda",
+    "python.defaultInterpreterPath": "/home/frog/miniconda3/envs/company_env",
     "python.terminal.activateEnvironment": true
 }
