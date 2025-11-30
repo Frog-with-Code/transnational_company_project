@@ -1,6 +1,5 @@
 from ..products.products import AbstractProduct
-
-from typing import Final
+from ..common.exceptions import ImpossibleLoading, ImpossibleUnloading
 
 
 class CargoManager:
@@ -19,7 +18,7 @@ class CargoManager:
         return required_space, required_mass
 
     def can_load(
-        self, products: dict[AbstractProduct, int], fill_rate: float = 1.0
+        self, products: dict[AbstractProduct, int], fill_rate: float = 0.9
     ) -> bool:
         usable_space = self.free_space * fill_rate
         required_space, required_mass = CargoManager.get_requirements(products)
@@ -39,22 +38,21 @@ class CargoManager:
         self.free_mass -= required_mass
 
     def load_products(
-        self, products: dict[AbstractProduct, int], fill_rate: float = 1.0
-    ) -> bool:
+        self, products: dict[AbstractProduct, int], fill_rate: float = 0.9
+    ) -> None:
         if not self.can_load(products, fill_rate):
-            return False
+            raise ImpossibleLoading("There isn't enough space or carrying capacity in transport")
 
         required_space, required_mass = CargoManager.get_requirements(products)
         self._commit_load(products, required_space, required_mass)
-        return True
 
     def can_unload(self, products: dict[AbstractProduct, int]) -> bool:
         if set(products) - set(self._cargo):
-            return False
+            False
 
         for product, amount in products.items():
             if self._cargo[product] < amount:
-                return False
+                False
 
         return True
 
@@ -68,12 +66,11 @@ class CargoManager:
             self.free_space += product.volume * amount
             self.free_mass += product.mass * amount
 
-    def unload_products(self, products: dict[AbstractProduct, int]) -> bool:
+    def unload_products(self, products: dict[AbstractProduct, int]) -> None:
         if not self.can_unload(products):
-            return False
+            raise ImpossibleUnloading("There isn't enough products in transport")
 
         self._commit_unload(products)
-        return True
 
     def is_empty(self) -> bool:
         return len(self._cargo) == 0

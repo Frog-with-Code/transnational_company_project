@@ -2,14 +2,16 @@ from ..products.products import AbstractProduct
 from ..hr.employees import AbstractEmployee
 from transport import AbstractTransport
 from cargo_manager import CargoManager
+from ..hr.employee_manager import EmployeeManagerMixin
 
 
-class Warehouse:
+class Warehouse(EmployeeManagerMixin):
     def __init__(self, capacity: float) -> None:
+        super().__init__()
         self.capacity = capacity
         self.carrying_capacity = float("inf")
-        self._workers = {}
         self._cargo_manager = CargoManager(self.capacity, self.carrying_capacity)
+        self._employees: set[AbstractEmployee] = set()
 
     def load_transport(
         self, transport: AbstractTransport, products: dict[AbstractProduct, int]

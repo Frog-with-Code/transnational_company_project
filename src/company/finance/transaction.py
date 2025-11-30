@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from typing import Optional
-from ..common.exceptions import ExceptionForbiddenTransaction
+from ..common.exceptions import ForbiddenTransactionError
 
 class TransactionType(Enum):
     TRANSFER = "Transfer"
@@ -32,10 +32,10 @@ class Transaction:
     def __post_init__(self):
         if self.transaction_type == TransactionType.TRANSFER:
             if not self.source_company or not self.destination_company:
-                raise ExceptionForbiddenTransaction("Transfer must have both source and destination")
+                raise ForbiddenTransactionError("Transfer must have both source and destination")
         
         elif self.transaction_type == TransactionType.DEPOSIT:
             if not self.destination_company:
-                raise ExceptionForbiddenTransaction("Deposit must have a destination")
+                raise ForbiddenTransactionError("Deposit must have a destination")
             if self.source_company:
-                raise ExceptionForbiddenTransaction("Deposit cannot have a source company")
+                raise ForbiddenTransactionError("Deposit cannot have a source company")

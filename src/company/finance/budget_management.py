@@ -17,10 +17,10 @@ class BudgetManagementService:
         description: str = "",
     ) -> Transaction:
 
-        source_money.validate_currency(source_company.currency)
+        source_money.validate_currency(source_company.balance.currency)
 
         target_money = self.currency_service.convert(
-            source_money, target_company.currency
+            source_money, target_company.balance.currency
         )
         transaction = Transaction(
             source_company=source_company,
@@ -55,7 +55,7 @@ class BudgetManagementService:
     def deposit(
         self, source_money: Money, company: AbstractCompany, description: str = ""
     ) -> Transaction:
-        target_money = self.currency_service.convert(source_money, company.currency)
+        target_money = self.currency_service.convert(source_money, company.balance.currency)
         company.deposit(target_money)
         transaction = Transaction(
             target_company=company,

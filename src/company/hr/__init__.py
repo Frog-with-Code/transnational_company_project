@@ -1,6 +1,5 @@
 from .employee_factory import EmployeeFactory
 from .employees import (
-    Engineer,
     ITSpecialist,
     Accountant,
     Seller,
@@ -11,7 +10,6 @@ from .employees import (
 
 __all__ = [
     "EmployeeFactory",
-    "Engineer",
     "ITSpecialist",
     "Accountant",
     "Seller",

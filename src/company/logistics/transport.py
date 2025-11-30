@@ -8,9 +8,10 @@ from ..common.enums import normalize_enum
 from math import isclose
 from dataclasses import dataclass
 from cargo_manager import CargoManager
+from ..hr.employee_manager import EmployeeManagerMixin
 
 
-class AbstractTransport(ABC):
+class AbstractTransport(ABC, EmployeeManagerMixin):
     specific_fields: set[str] = set()
     common_fields: set[str] = {
         "transport_id",
@@ -37,6 +38,7 @@ class AbstractTransport(ABC):
         current_location: Location,
         fuel_consumption: float
     ):
+        super().__init__()
         self.transport_id = transport_id
         self.model = model
         self.production_year = production_year
@@ -47,7 +49,7 @@ class AbstractTransport(ABC):
         self.current_location = current_location
         self.fuel_consumption = fuel_consumption
 
-        self.workers: set[AbstractEmployee] = set()
+        self._employees: set[AbstractEmployee] = set()
         self.status: TransportStatus = TransportStatus.AVAILABLE
         self._cargo_manager = CargoManager(self.capacity, self.carrying_capacity)
 
@@ -115,6 +117,13 @@ class AbstractTransport(ABC):
     @classmethod
     def get_necessary_fields(cls) -> set[str]:
         return cls.specific_fields | cls.common_fields
+    
+    def get_product_names(self) -> list[str]:
+        return self._cargo_manager.get_product_names()
+    
+    @property
+    def cargo(self) -> dict[AbstractProduct, int]:
+        return self._cargo_manager.cargo
 
 
 @dataclass

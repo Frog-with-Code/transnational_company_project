@@ -35,12 +35,11 @@ class FinancialQualification(Enum):
     ACCA = "ACCA"
     CIMA = "CIMA"
     ACPM = "ACPM"
-    CPA = "CPA"
+    CAP = "CAP"
     CIA = "CIA"
     CFA = "CFA"
     
 class ITQualificationLevel(Enum):
-    JUNIOR = "JUNIOR"
-    MIDDLE = "MIDDLE"
-    SENIOR = "SENIOR"
-    LEAD = "LEAD"
+    JUNIOR = "Junior"
+    MIDDLE = "Middle"
+    SENIOR = "Senior"

@@ -2,29 +2,50 @@ from abc import ABC, abstractmethod
 from .enums import *
 from datetime import date, timedelta
 from random import random
+from ..common.enums import normalize_enum
+from ..finance.budget import Money
 
 
 class AbstractEmployee(ABC):
     specific_fields: set[str] = set()
+    common_fields: set[str] = {
+        "name",
+        "surname",
+        "personal_id",
+        "role",
+        "classification",
+        "experience",
+        "salary",
+    }
 
     def __init__(
         self,
         *,
         name: str,
         surname: str,
-        personal_id: str,
+        personal_id: int,
         role: EmployeeRole,
         classification: EmployeeClassification,
         experience: int,
-        salary: int,
+        salary: Money,
     ) -> None:
         self.name = name
         self.surname = surname
-        self.personal_id = personal_id
+        self._personal_id = personal_id
         self.role = role
         self.classification = classification
         self.salary = salary
         self.experience = experience
+
+    def __hash__(self) -> int:
+        return hash(self._personal_id)
+
+    def __eq__(self, other: "AbstractEmployee") -> bool:
+        return (
+            isinstance(other, AbstractEmployee)
+            and self.full_name == other.fullname
+            and self.personal_id == other.personal_id
+        )
 
     @abstractmethod
     def work(self):
@@ -42,7 +63,7 @@ class AbstractEmployee(ABC):
         fields = {
             "name": self.name,
             "surname": self.surname,
-            "personal_id": self.personal_id,
+            "personal_id": self._personal_id,
             "profession": self.get_profession(),
             "role": self.role.value,
             "classification": self.classification.value,
@@ -59,12 +80,21 @@ class AbstractEmployee(ABC):
 
         return fields
 
-    def get_full_name(self) -> str:
+    @property
+    def full_name(self) -> str:
         return f"{self.name} {self.surname}"
 
     @classmethod
-    def get_specific_fields(cls):
+    def get_specific_fields(cls) -> set[str]:
         return cls.specific_fields
+
+    @classmethod
+    def get_necessary_fields(cls) -> set[str]:
+        return cls.common_fields | cls.specific_fields
+
+    @property
+    def personal_id(self) -> int:
+        return self._personal_id
 
 
 class OfficeEmployee(AbstractEmployee, ABC):
@@ -101,17 +131,11 @@ class ITSpecialist(OfficeEmployee):
     ) -> None:
         super().__init__(**kwargs)
 
-        if isinstance(specialization, str):
-            self.specialization = ITSpecialization(specialization)
-        else:
-            self.specialization = specialization
-
+        self.specialization = normalize_enum(specialization, ITSpecialization)
         self.programming_langs = programming_langs[:]
-
-        if isinstance(qualification_level, str):
-            self.it_qualification_level = ITQualificationLevel(qualification_level)
-        else:
-            self.it_qualification_level = qualification_level
+        self.qualification_level = normalize_enum(
+            qualification_level, ITQualificationLevel
+        )
 
         self.active_projects: set[str] = set()
 
@@ -146,10 +170,7 @@ class Accountant(OfficeEmployee):
     ) -> None:
         super().__init__(**kwargs)
         self.erp_systems = erp_systems[:]
-        self.certifications = [
-            FinancialQualification(cert) if isinstance(cert, str) else cert
-            for cert in certifications
-        ]
+        self.certifications = normalize_enum(certifications)
 
         self.audit_status: str = "none"
 
@@ -181,7 +202,7 @@ class Seller(OfficeEmployee):
 
     def get_profession(self) -> str:
         return "seller"
-    
+
     def work(self) -> None:
         print("*Trying to sell a pen*")
 
@@ -192,7 +213,7 @@ class HRSpecialist(OfficeEmployee):
 
     def get_profession(self) -> str:
         return "hr_specialist"
-    
+
     def work(self) -> None:
         print("*Talking with some strangers*")
 

@@ -2,9 +2,12 @@ from .employees import *
 from .enums import EmployeeClassification, EmployeeRole
 from pathlib import Path
 import json
+from ..finance.budget import Money
 
 
 class EmployeeFactory:
+    last_id = 1
+    
     professions = {
         "it_specialist": ITSpecialist,
         "accountant": Accountant,
@@ -14,23 +17,15 @@ class EmployeeFactory:
         "cleaner": Cleaner,
     }
 
-    def __init__(self
-                 #, params_validator, file_validator
-                 ) -> None:
-        pass
-        # self.params_validator = params_validator
-        # self.file_validator = file_validator
-
     def create_by_params(
         self,
         name: str,
         surname: str,
-        personal_id: str,
         profession: str,
         role: EmployeeRole,
         classification: EmployeeClassification,
         experience: int,
-        salary: int,
+        salary: Money,
         **specific_params
     ) -> AbstractEmployee:
 
@@ -42,11 +37,12 @@ class EmployeeFactory:
         if required_fields - provided_fields:
             #TODO specific exception
             pass
-
+        
+        EmployeeFactory.last_id += 1
         return employee_class(
             name=name,
             surname=surname,
-            personal_id=personal_id,
+            personal_id=EmployeeFactory.last_id,
             role=role,
             classification=classification,
             experience=experience,
@@ -62,17 +58,19 @@ class EmployeeFactory:
         classification = EmployeeClassification(data["classification"])
         employee_class = EmployeeFactory.professions[data["profession"]]
 
-        required_fields = employee_class.get_specific_fields()
+        required_fields = employee_class.get_necessary_fields()
         provided_fields = set(data.keys())
+        provided_fields.remove("profession")
+        specific_fields = employee_class.get_specific_fields()
         if required_fields - provided_fields:
-            #TODO specific exception
-            pass
-        specific_params = {key: data[key] for key in required_fields}
+            raise ValueError
+        specific_params = {key: data[key] for key in specific_fields}
 
+        EmployeeFactory.last_id += 1
         return employee_class(
             name=data["name"],
             surname=data["surname"],
-            personal_id=data["personal_id"],
+            personal_id=EmployeeFactory.last_id,
             role=role,
             classification=classification,
             experience=data["experience"],
