@@ -43,7 +43,7 @@ class AbstractEmployee(ABC):
     def __eq__(self, other: "AbstractEmployee") -> bool:
         return (
             isinstance(other, AbstractEmployee)
-            and self.full_name == other.fullname
+            and self.full_name == other.full_name
             and self.personal_id == other.personal_id
         )
 

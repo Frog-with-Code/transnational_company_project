@@ -1,8 +1,8 @@
 from __future__ import annotations
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from decimal import Decimal
 from ..common.exceptions import DifferentCurrenciesError
-from datetime import datetime, replace
+from datetime import datetime
 from enum import Enum
 
 class Currency(Enum):
@@ -42,6 +42,30 @@ class Money:
 
     def __str__(self) -> str:
         return f"{self.amount} {self.currency}"
+    
+    def __iadd__(self, other) -> Money:
+        self.validate_currency(other)
+        self.amount += other.amount
+        return self
+    
+    def __add__(self, other) -> Money:
+        self.validate_currency(other)
+        total = Money(0, self.currency)
+        total += self
+        total += other
+        return total
+    
+    def __isub__(self, other) -> Money:
+        self.validate_currency(other)
+        self.amount -= other.amount
+        return self
+    
+    def __add__(self, other) -> Money:
+        self.validate_currency(other)
+        total = Money(0, self.currency)
+        total -= self
+        total -= other
+        return total
 
 
 class Budget:

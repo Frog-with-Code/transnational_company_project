@@ -48,11 +48,11 @@ class CargoManager:
 
     def can_unload(self, products: dict[AbstractProduct, int]) -> bool:
         if set(products) - set(self._cargo):
-            False
+            return False
 
         for product, amount in products.items():
             if self._cargo[product] < amount:
-                False
+                return False
 
         return True
 

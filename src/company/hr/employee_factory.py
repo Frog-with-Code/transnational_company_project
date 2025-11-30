@@ -29,7 +29,6 @@ class EmployeeFactory:
         **specific_params
     ) -> AbstractEmployee:
 
-        self.params_validator.validation()
         employee_class = EmployeeFactory.professions[profession]
         
         required_fields = employee_class.get_specific_fields()

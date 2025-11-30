@@ -1,8 +1,8 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 from dataclasses import dataclass
 
 @dataclass(frozen=True)
-class AbstractProduct:
+class AbstractProduct(ABC):
     name: str
     volume: float
     mass: float 

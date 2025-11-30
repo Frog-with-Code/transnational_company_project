@@ -44,7 +44,7 @@ class Warehouse(EmployeeManagerMixin):
 
         return success
 
-    def supply(self, products: dict[AbstractProduct], int) -> bool:
+    def supply(self, products: dict[AbstractProduct, int]) -> bool:
         success = self._cargo_manager.load_products(products)
         print(
             "Supplement was successfully placed"
