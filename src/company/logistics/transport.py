@@ -150,7 +150,7 @@ class Train(AbstractTransport):
     def _capture_cargo(self, wagon: Wagon) -> None:
         self.capacity += wagon.capacity
         self.carrying_capacity += wagon.carrying_capacity
-        self._cargo_manager.free_mass += wagon.capacity
+        self._cargo_manager.free_space += wagon.capacity
         self._cargo_manager.free_mass += wagon.carrying_capacity
 
     def _release_cargo(self, wagon: Wagon) -> None:
@@ -229,7 +229,7 @@ class Ship(AbstractTransport):
     
     def __init__(self, ship_type: ShipType | str, max_draft: float, **kwargs):
         super().__init__(**kwargs)
-        self.fuel = normalize_enum(ship_type, ShipType)
+        self.ship_type = normalize_enum(ship_type, ShipType)
         self.max_draft = max_draft
 
     def can_draft(self, chanel_depth: float) -> bool:

@@ -1,5 +1,5 @@
 from .budget import *
-from transaction import *
+from .transaction import *
 from dataclasses import replace
 from ..common.exceptions import ExceptionForbiddenTransaction
 
@@ -40,7 +40,7 @@ class BudgetManagementService:
                 raise deposit_error
 
             status = TransactionStatus.COMPLETED
-        except Exception as e:
+        except ForbiddenTransactionError as e:
             status = TransactionStatus.FAILED
             print(f"Transaction failed with error {e}")
 
@@ -55,7 +55,9 @@ class BudgetManagementService:
     def deposit(
         self, source_money: Money, company: AbstractCompany, description: str = ""
     ) -> Transaction:
-        target_money = self.currency_service.convert(source_money, company.balance.currency)
+        target_money = self.currency_service.convert(
+            source_money, company.balance.currency
+        )
         company.deposit(target_money)
         transaction = Transaction(
             target_company=company,
@@ -68,7 +70,14 @@ class BudgetManagementService:
         return transaction
 
     def refund(self, transaction_id: UUID):
-        transaction = self._transaction_history.get(transaction_id)
+        transaction = next(
+            (
+                tr
+                for tr in reversed(self._transaction_history)
+                if tr.transaction_id == transaction_id
+            ),
+            None,
+        )
 
         if transaction.transaction_type != TransactionType.TRANSFER:
             raise ExceptionForbiddenTransaction("Can only refund transfers")
@@ -77,6 +86,5 @@ class BudgetManagementService:
             source_money=transaction.target_money,
             source_company=transaction.target_company,
             target_company=transaction.source_company,
-            description=f"Refund for {transaction_id}"
+            description=f"Refund for {transaction_id}",
         )
-

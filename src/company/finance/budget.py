@@ -45,29 +45,16 @@ class Money:
     def __str__(self) -> str:
         return f"{self.amount} {self.currency}"
     
-    def __iadd__(self, other) -> Money:
+    def __add__(self, other: Money) -> Money:
         self.validate_currency(other)
-        self.amount += other.amount
-        return self
+        return Money(self.amount + other.amount, self.currency)
     
-    def __add__(self, other) -> Money:
+    def __sub__(self, other: Money) -> Money:
         self.validate_currency(other)
-        total = Money(0, self.currency)
-        total += self
-        total += other
-        return total
+        return Money(self.amount - other.amount, self.currency)
     
-    def __isub__(self, other) -> Money:
-        self.validate_currency(other)
-        self.amount -= other.amount
-        return self
-    
-    def __add__(self, other) -> Money:
-        self.validate_currency(other)
-        total = Money(0, self.currency)
-        total -= self
-        total -= other
-        return total
+    def __mul__(self, factor: int | float) -> Money:
+        return Money(self.amount * factor, self.currency)
     
     def __post_init__(self) -> None:
         validate_non_negative(self.amount)
@@ -90,19 +77,19 @@ class Budget:
         return self._balance.amount >= money.amount
 
     def withdraw(self, money: Money) -> None:
-        self.currency.validate_currency(money)
+        self._balance.validate_currency(money)
         if not self._can_withdraw(money):
             raise InsufficientBudgetError("There is not enough money in the budget for withdraw")
         
         self._balance = replace(
-            self._balance, amount=self._balance.amount - money.amount
+            self._balance, amount=self._balance - money
         )
             
 
     def deposit(self, money: Money) -> None:
-        self.currency.validate_currency(money)
+        self._balance.validate_currency(money)
         self._balance = replace(
-            self._balance, amount=self._balance.amount + money.amount
+            self._balance, amount=self._balance + money
         )
 
 
@@ -115,7 +102,7 @@ class CurrencyService:
         if money.currency == target_currency:
             return money
 
-        to_usd = money.amount * self._rates[money.currency]
+        to_usd = money * self._rates[money.currency]
         return Money(to_usd / self._rates[target_currency], target_currency)
     
     @property

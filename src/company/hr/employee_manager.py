@@ -16,10 +16,6 @@ class EmployeeManagerMixin:
         if self.has_employee(employee):
             print(f"{employee.full_name} is already employed!")
             raise EmployeeAlreadyHiredError(employee.full_name)
-        if employee.salary.currency != self.balance.currency:
-            raise DifferentCurrenciesError(
-                "Employee's salary currency differs from company's budget currency"
-            )
 
         self._employees.add(employee)
         print(f"{employee.full_name} was successfully hired")
@@ -31,7 +27,7 @@ class EmployeeManagerMixin:
         self._employees.remove(employee)
         print(f"{employee.full_name} was successfully fired")
 
-    def has_employee(self, employee: AbstractEmployee) -> None:
+    def has_employee(self, employee: AbstractEmployee) -> bool:
         return employee in self._employees
 
     def calculate_payroll(self) -> Money:

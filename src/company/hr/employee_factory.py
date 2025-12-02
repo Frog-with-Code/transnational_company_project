@@ -33,7 +33,7 @@ class DriverSchema(BaseEmployeeSchema):
 class AccountantSchema(BaseEmployeeSchema):
     profession: Literal["accountant"]
     erp_systems: list[str]
-    certifications: list[str]
+    certifications: list[FinancialQualification]
 
 
 class SellerSchema(BaseEmployeeSchema):

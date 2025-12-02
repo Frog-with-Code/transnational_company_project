@@ -6,9 +6,9 @@ from ..finance.budget import Budget, Money, Currency
 from ..common.exceptions import (
     CompanyAlreadyCooperatedError,
     CompanyNotCooperatedError,
-    CompanyOwnershipStakeError,
-    Location,
+    CompanyOwnershipStakeError
 )
+from ..common.location import Location
 
 
 class AbstractCompany(ABC, EmployeeManagerMixin):
@@ -60,10 +60,10 @@ class HeadquarterCompany(AbstractCompany):
         name: str,
         location: Location,
         director: AbstractEmployee,
-        start_capital: Money = None,
+        starting_capital: Money = None,
     ) -> None:
         super().__init__(
-            name=name, location=location, director=director, start_capital=start_capital
+            name=name, location=location, director=director, starting_capital=starting_capital
         )
         self._subsidiaries: set[SubsidiaryCompany] = set()
         self._associated_companies: set[AssociatedCompany] = set()
@@ -152,10 +152,10 @@ class AssociatedCompany(AbstractCompany):
         director: AbstractEmployee,
         ownership_stake: float,
         parent_company: HeadquarterCompany,
-        start_capital: Money = None,
+        starting_capital: Money = None,
     ) -> None:
         super().__init__(
-            name=name, location=location, director=director, start_capital=start_capital
+            name=name, location=location, director=director, starting_capital=starting_capital
         )
 
         if not (20 <= ownership_stake <= 50):

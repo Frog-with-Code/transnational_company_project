@@ -20,10 +20,10 @@ class TransactionStatus(Enum):
 @dataclass(frozen=True)
 class Transaction:
     transaction_type: TransactionType
-    source_company: Optional[AbstractCompany] = None
-    destination_company: Optional[AbstractCompany] = None
     source_money: Money
     target_money: Money
+    source_company: Optional[AbstractCompany] = None
+    destination_company: Optional[AbstractCompany] = None
     description: str = ""
     transaction_id: UUID = field(default_factory=uuid4)
     status: TransactionStatus = TransactionStatus.PENDING
