@@ -1,13 +1,72 @@
 from .employees import *
 from .enums import EmployeeClassification, EmployeeRole
-from pathlib import Path
-import json
 from ..finance.budget import Money
+
+from typing import Literal, Union, Annotated
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
+
+
+class BaseEmployeeSchema(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    name: str = Field(..., min_length=1)
+    surname: str = Field(..., min_length=1)
+    role: EmployeeRole
+    classification: EmployeeClassification
+    experience: int = Field(..., ge=0)
+    salary: Money
+
+
+class ITSpecialistSchema(BaseEmployeeSchema):
+    profession: Literal["it_specialist"]
+    programming_langs: list[str]
+    specialization: ITSpecialization | str
+    qualification_level: ITQualificationLevel | str
+
+
+class DriverSchema(BaseEmployeeSchema):
+    profession: Literal["driver"]
+    license_category: str
+    license_expire_date: date
+
+
+class AccountantSchema(BaseEmployeeSchema):
+    profession: Literal["accountant"]
+    erp_systems: list[str]
+    certifications: list[str]
+
+
+class SellerSchema(BaseEmployeeSchema):
+    profession: Literal["seller"]
+
+
+class HRSpecialistSchema(BaseEmployeeSchema):
+    profession: Literal["hr_specialist"]
+
+
+class CleanerSchema(BaseEmployeeSchema):
+    profession: Literal["cleaner"]
+    skills: list[str]
+    hazardous_waste_trained: bool
+
+
+EmployeeInput = Annotated[
+    Union[
+        ITSpecialistSchema,
+        DriverSchema,
+        AccountantSchema,
+        SellerSchema,
+        HRSpecialistSchema,
+        CleanerSchema,
+    ],
+    Field(discriminator="profession"),
+]
 
 
 class EmployeeFactory:
     last_id = 1
-    
+    validator = TypeAdapter(EmployeeInput)
+
     professions = {
         "it_specialist": ITSpecialist,
         "accountant": Accountant,
@@ -26,53 +85,29 @@ class EmployeeFactory:
         classification: EmployeeClassification,
         experience: int,
         salary: Money,
-        **specific_params
+        **specific_params,
     ) -> AbstractEmployee:
 
-        employee_class = EmployeeFactory.professions[profession]
-        
-        required_fields = employee_class.get_specific_fields()
-        provided_fields = set(specific_params.keys())
-        if required_fields - provided_fields:
-            #TODO specific exception
-            pass
-        
-        EmployeeFactory.last_id += 1
-        return employee_class(
-            name=name,
-            surname=surname,
-            personal_id=EmployeeFactory.last_id,
-            role=role,
-            classification=classification,
-            experience=experience,
-            salary=salary,
-            **specific_params
-        )
+        raw_data = {
+            "name": name,
+            "surname": surname,
+            "profession": profession,
+            "role": role,
+            "classification": classification,
+            "experience": experience,
+            "salary": salary,
+            **specific_params,
+        }
+        try:
+            model = self.validator.validate_python(raw_data)
+            valid_data = model.model_dump()
 
-    def create_from_file(self, abs_path: Path) -> AbstractEmployee:
-        #self.file_validator.validation()
-        with open(abs_path) as f:
-            data = json.load(f)["employee"]
-        role = EmployeeRole(data["role"])
-        classification = EmployeeClassification(data["classification"])
-        employee_class = EmployeeFactory.professions[data["profession"]]
+        except ValidationError as e:
+            raise ValueError(f"Ошибка валидации при создании сотрудника: {e}")
 
-        required_fields = employee_class.get_necessary_fields()
-        provided_fields = set(data.keys())
-        provided_fields.remove("profession")
-        specific_fields = employee_class.get_specific_fields()
-        if required_fields - provided_fields:
-            raise ValueError
-        specific_params = {key: data[key] for key in specific_fields}
+        profession = valid_data.pop("profession")
+        employee_class = self.professions[profession]
 
         EmployeeFactory.last_id += 1
-        return employee_class(
-            name=data["name"],
-            surname=data["surname"],
-            personal_id=EmployeeFactory.last_id,
-            role=role,
-            classification=classification,
-            experience=data["experience"],
-            salary=data["salary"],
-            **specific_params
-        )
+
+        return employee_class(personal_id=EmployeeFactory.last_id, **valid_data)

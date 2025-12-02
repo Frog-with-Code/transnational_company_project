@@ -4,6 +4,9 @@ class DifferentCurrenciesError(Exception):
 class ForbiddenTransactionError(Exception):
     """Exception for incorrect parameters in transaction"""
     
+class InsufficientBudgetError(Exception):
+    """Exception for operations with insufficient budget"""
+    
 class EmployeeError(Exception):
     """Exception for employee-related operations"""
     
@@ -18,6 +21,9 @@ class EmployeeNotHiredError(EmployeeError):
     def __init__(self, employee_name: str):
         self.message = f"Employee '{employee_name}' is not hired yet"
         super().__init__(self.message)
+        
+class EmployeePossibilityError(EmployeeError):
+    """Raised when employee has no rights to perform an action"""
         
 class CompanyError(Exception):
     """Exception for company related operations"""

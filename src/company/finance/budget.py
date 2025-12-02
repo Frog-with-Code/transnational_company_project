@@ -1,9 +1,11 @@
 from __future__ import annotations
 from dataclasses import dataclass, replace
 from decimal import Decimal
-from ..common.exceptions import DifferentCurrenciesError
+from ..common.exceptions import DifferentCurrenciesError, InsufficientBudgetError
 from datetime import datetime
 from enum import Enum
+from ..common.validation import validate_non_negative
+
 
 class Currency(Enum):
     USD = "USD"
@@ -66,6 +68,10 @@ class Money:
         total -= self
         total -= other
         return total
+    
+    def __post_init__(self) -> None:
+        validate_non_negative(self.amount)
+            
 
 
 class Budget:
@@ -85,10 +91,13 @@ class Budget:
 
     def withdraw(self, money: Money) -> None:
         self.currency.validate_currency(money)
-        if self._can_withdraw(money):
-            self._balance = replace(
-                self._balance, amount=self._balance.amount - money.amount
-            )
+        if not self._can_withdraw(money):
+            raise InsufficientBudgetError("There is not enough money in the budget for withdraw")
+        
+        self._balance = replace(
+            self._balance, amount=self._balance.amount - money.amount
+        )
+            
 
     def deposit(self, money: Money) -> None:
         self.currency.validate_currency(money)

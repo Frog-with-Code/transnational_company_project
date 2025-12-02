@@ -4,20 +4,13 @@ from datetime import date, timedelta
 from random import random
 from ..common.enums import normalize_enum
 from ..finance.budget import Money
+from ..common.descriptors import NonNegative
+from ..common.exceptions import EmployeePossibilityError
 
 
 class AbstractEmployee(ABC):
-    specific_fields: set[str] = set()
-    common_fields: set[str] = {
-        "name",
-        "surname",
-        "personal_id",
-        "role",
-        "classification",
-        "experience",
-        "salary",
-    }
-
+    experience = NonNegative()
+    
     def __init__(
         self,
         *,
@@ -114,13 +107,11 @@ class FieldEmployee(AbstractEmployee, ABC):
     def can_work_remotely(self) -> bool:
         return False
 
-    def is_medically_fir(self) -> bool:
+    def is_medically_fit(self) -> bool:
         return self.medical_check_date + timedelta(days=365) >= date.today()
 
 
 class ITSpecialist(OfficeEmployee):
-    specific_fields = {"programming_langs", "specialization", "qualification_level"}
-
     def __init__(
         self,
         *,
@@ -159,8 +150,6 @@ class ITSpecialist(OfficeEmployee):
 
 
 class Accountant(OfficeEmployee):
-    specific_fields = {"erp_systems", "certifications"}
-
     def __init__(
         self,
         *,
@@ -182,11 +171,12 @@ class Accountant(OfficeEmployee):
         return any(cert in audit_certs for cert in self.certifications)
 
     def start_audit(self) -> bool:
-        if self.can_handle_audit():
-            self.audit_status = "in_progress"
-        # TODO error
+        if not self.can_handle_audit():
+            raise EmployeePossibilityError("Employee can't handle audits")
+        
+        self.audit_status = "in_progress"
 
-    def end_audit(self) -> bool:
+    def end_audit(self) -> None:
         if self.audit_status == "in_progress":
             self.audit_status = "none"
         else:
@@ -219,8 +209,6 @@ class HRSpecialist(OfficeEmployee):
 
 
 class Driver(FieldEmployee):
-    specific_fields = {"license_category", "license_expire_date", "routes"}
-
     def __init__(
         self, *, license_category: str, license_expire_date: date, **kwargs
     ) -> None:
@@ -257,8 +245,6 @@ class Driver(FieldEmployee):
 
 
 class Cleaner(FieldEmployee):
-    specific_fields = {"skills", "hazardous_waste_trained"}
-
     def __init__(
         self, *, skills: list[str], hazardous_waste_trained: bool, **kwargs
     ) -> None:

@@ -1,8 +1,12 @@
 from ..products.products import AbstractProduct
 from ..common.exceptions import ImpossibleLoading, ImpossibleUnloading
+from ..common.descriptors import NonNegative
 
 
 class CargoManager:
+    free_space = NonNegative()
+    free_mass = NonNegative()
+    
     def __init__(self, capacity: float, carrying_capacity: float) -> None:
         self.free_space = capacity
         self.free_mass = carrying_capacity

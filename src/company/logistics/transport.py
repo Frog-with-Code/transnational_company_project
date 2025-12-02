@@ -6,25 +6,20 @@ from ..products.products import AbstractProduct
 from datetime import date
 from ..common.enums import normalize_enum
 from math import isclose
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from cargo_manager import CargoManager
 from ..hr.employee_manager import EmployeeManagerMixin
+from ..common.descriptors import NonNegative
+from ..common.validation import validate_non_negative
 
 
 class AbstractTransport(ABC, EmployeeManagerMixin):
-    specific_fields: set[str] = set()
-    common_fields: set[str] = {
-        "transport_id",
-        "model",
-        "production_year",
-        "tech_inspection_date",
-        "carrying_capacity",
-        "capacity",
-        "max_speed",
-        "current_location",
-        "fuel_consumption",
-    }
-
+    production_year = NonNegative()
+    carrying_capacity = NonNegative()
+    capacity = NonNegative()
+    max_speed = NonNegative()
+    fuel_consumption = NonNegative()
+    
     def __init__(
         self,
         *,
@@ -53,7 +48,8 @@ class AbstractTransport(ABC, EmployeeManagerMixin):
         self.status: TransportStatus = TransportStatus.AVAILABLE
         self._cargo_manager = CargoManager(self.capacity, self.carrying_capacity)
 
-    def get_model_info(self) -> dict:
+    @property
+    def model_info(self) -> dict:
         return {
             "model": self.model,
             "production_year": self.production_year,
@@ -66,16 +62,12 @@ class AbstractTransport(ABC, EmployeeManagerMixin):
     def can_work(self) -> bool:
         return self.status == TransportStatus.AVAILABLE
 
-    def add_worker(self, worker: AbstractEmployee) -> None:
-        self.workers.add(worker)
-
-    def remove_worker(self, worker: AbstractEmployee) -> None:
-        self.workers.discard(worker)
-
     def calculate_min_delivery_time(self, distance: float) -> float:
+        validate_non_negative(distance)
         return distance / self.max_speed
 
     def calculate_fuel_cost(self, distance: float, fuel_price: float) -> float:
+        validate_non_negative(distance, fuel_price)
         return distance / 100 * self.fuel_consumption * fuel_price
 
     def can_load(self) -> bool:
@@ -130,11 +122,16 @@ class AbstractTransport(ABC, EmployeeManagerMixin):
 class Wagon:
     capacity: float
     carrying_capacity: float
+    
+    def __post_init__(self):
+        for field in fields(self):
+            value = getattr(self, field.name)
+            validate_non_negative(value)
 
 
 class Train(AbstractTransport):
-    specific_fields = {"wagons", "track_gauge"}
-
+    track_gauge = NonNegative()
+    
     def __init__(
         self, wagons: list[Wagon] | None, track_gauge: float, **kwargs
     ) -> None:
@@ -147,6 +144,7 @@ class Train(AbstractTransport):
             self.wagon_num = len(wagons)
             for wagon in wagons:
                 self._add_wagon_capacities(wagon)
+                
         self.track_gauge = track_gauge
 
     def _capture_cargo(self, wagon: Wagon) -> None:
@@ -162,6 +160,7 @@ class Train(AbstractTransport):
         self._cargo_manager.free_mass -= wagon.carrying_capacity
 
     def is_tracks_compatible(self, track_gauge: float) -> bool:
+        validate_non_negative(track_gauge)
         return isclose(self.track_gauge, track_gauge)
 
     def attach_wagon(self, wagon: Wagon) -> None:
@@ -172,6 +171,7 @@ class Train(AbstractTransport):
     def detach_wagon(
         self, wagon_capacity: float, wagon_carrying_capacity: float
     ) -> Wagon:
+        validate_non_negative(wagon_capacity, wagon_carrying_capacity)
         if (
             wagon_capacity < self._cargo_manager.free_space
             and wagon_carrying_capacity < self._cargo_manager.free_mass
@@ -188,8 +188,10 @@ class Train(AbstractTransport):
 
 
 class Plane(AbstractTransport):
-    specific_fields = {"max_height", "max_range", "runway_length_required"}
-
+    max_height = NonNegative()
+    max_range = NonNegative()
+    runway_length_required = NonNegative()
+    
     def __init__(
         self,
         max_height: float,
@@ -203,6 +205,7 @@ class Plane(AbstractTransport):
         self.runway_length_required = runway_length_required
 
     def can_take_off(self, runway_length: float) -> bool:
+        validate_non_negative(runway_length)
         return runway_length >= self.runway_length_required
 
     def calculate_flight_range(self) -> float:
@@ -212,8 +215,6 @@ class Plane(AbstractTransport):
 
 
 class Car(AbstractTransport):
-    specific_fields = {"fuel_type", "is_refrigerated"}
-
     def __init__(self, fuel_type: CarFuelType | str, is_refrigerated: bool, **kwargs):
         super().__init__(**kwargs)
         self.fuel_type = normalize_enum(fuel_type, CarFuelType)
@@ -224,12 +225,13 @@ class Car(AbstractTransport):
 
 
 class Ship(AbstractTransport):
-    specific_fields = {"ship_type"}
-
+    max_draft = NonNegative()
+    
     def __init__(self, ship_type: ShipType | str, max_draft: float, **kwargs):
         super().__init__(**kwargs)
         self.fuel = normalize_enum(ship_type, ShipType)
         self.max_draft = max_draft
 
     def can_draft(self, chanel_depth: float) -> bool:
+        validate_non_negative(chanel_depth)
         return self.max_draft > chanel_depth
