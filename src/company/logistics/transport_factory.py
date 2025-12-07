@@ -105,12 +105,6 @@ Used for polymorphic validation where the specific type is determined at runtime
 """
 
 
-transport_validator = TypeAdapter(TransportInput)
-"""
-Pydantic TypeAdapter configured to validate data against the `TransportInput` union.
-"""
-
-
 class TransportFactory:
     """
     Factory class for creating domain transport objects from raw data.
@@ -118,6 +112,8 @@ class TransportFactory:
     This factory uses Pydantic schemas to validate input data before instantiating
     the corresponding domain class (e.g., `Train`, `Plane`, `Car`, `Ship`).
     """
+    transport_validator = TypeAdapter(TransportInput)
+
     _map: dict[str, Type[AbstractTransport]] = {
         "train": Train,
         "plane": Plane,
@@ -145,7 +141,7 @@ class TransportFactory:
             ValidationError: If the input data does not match the required schema.
             KeyError: If the transport type is not found in the internal map.
         """
-        model = transport_validator.validate_python(raw_data)
+        model = TransportFactory.transport_validator.validate_python(raw_data)
         valid_data = model.model_dump()
 
 

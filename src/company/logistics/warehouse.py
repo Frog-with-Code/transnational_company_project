@@ -33,7 +33,7 @@ class Warehouse(EmployeeManagerMixin):
         """
         super().__init__()
         self.capacity = capacity
-        # Warehouse usually rests on the ground, so mass limit is treated as infinite
+
         self.carrying_capacity = float("inf")
         self._cargo_manager = CargoManager(self.capacity, self.carrying_capacity)
         self._employees: set[AbstractEmployee] = set()

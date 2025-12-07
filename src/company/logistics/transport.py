@@ -204,26 +204,6 @@ class AbstractTransport(ABC, EmployeeManagerMixin):
         """
         self.status = TransportStatus.IN_TRANSIT
         self.current_location = destination
-
-    @classmethod
-    def get_specific_fields(cls) -> set[str]:
-        """
-        Get fields specific to the concrete transport class.
-
-        Returns:
-            set[str]: A set of field names.
-        """
-        return cls.specific_fields
-
-    @classmethod
-    def get_necessary_fields(cls) -> set[str]:
-        """
-        Get all required fields for initialization (common + specific).
-
-        Returns:
-            set[str]: A combined set of field names.
-        """
-        return cls.specific_fields | cls.common_fields
     
     def get_product_names(self) -> list[str]:
         """
