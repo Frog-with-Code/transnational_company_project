@@ -5,7 +5,7 @@ from enum import Enum
 E = TypeVar("E", bound=Enum)
 
 
-def normalize_enum(value: str | E | list[E], enum_class: Type[E]) -> E | list[E]:
+def normalize_enum(value: str | E | list[E | str], enum_class: Type[E]) -> E | list[E]:
     """
     Normalize a string, an Enum member, or a list of them into the target Enum type.
 
