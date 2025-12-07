@@ -1,16 +1,18 @@
 from abc import ABC
-from enums import *
+from math import isclose
+from dataclasses import dataclass, fields
+from datetime import date
+
+from .enums import *
 from ..common.location import Location
 from ..hr.employees import AbstractEmployee
 from ..products.products import AbstractProduct
-from datetime import date
 from ..common.enums import normalize_enum
-from math import isclose
-from dataclasses import dataclass, fields
-from cargo_manager import CargoManager
+from .cargo_manager import CargoManager
 from ..hr.employee_manager import EmployeeManagerMixin
 from ..common.descriptors import NonNegative
 from ..common.validation import validate_non_negative
+from ..common.exceptions import ImpossibleUnloading
 
 
 class AbstractTransport(ABC, EmployeeManagerMixin):
@@ -70,11 +72,12 @@ class AbstractTransport(ABC, EmployeeManagerMixin):
         validate_non_negative(distance, fuel_price)
         return distance / 100 * self.fuel_consumption * fuel_price
 
-    def can_load(self) -> bool:
-        return self._cargo_manager.can_load()
+    def can_load(self, products: dict[AbstractProduct, int], fill_rate: float) -> bool:
+        validate_non_negative(fill_rate)
+        return self._cargo_manager.can_load(products, fill_rate)
 
-    def can_unload(self) -> bool:
-        return self._cargo_manager.can_unload()
+    def can_unload(self, products: dict[AbstractProduct, int]) -> bool:
+        return self._cargo_manager.can_unload(products)
 
     def load_products(
         self, products: dict[AbstractProduct, int], fill_rate: float
@@ -116,6 +119,9 @@ class AbstractTransport(ABC, EmployeeManagerMixin):
     @property
     def cargo(self) -> dict[AbstractProduct, int]:
         return self._cargo_manager.cargo
+    
+    def is_empty(self) -> bool:
+        return self._cargo_manager.is_empty()
 
 
 @dataclass
@@ -133,14 +139,14 @@ class Train(AbstractTransport):
     track_gauge = NonNegative()
     
     def __init__(
-        self, wagons: list[Wagon] | None, track_gauge: float, **kwargs
+        self, track_gauge: float, wagons: list[Wagon] | None, **kwargs
     ) -> None:
         super().__init__(**kwargs)
         if wagons is None:
-            self.wagons = []
+            self._wagons = []
             self.wagon_num = 0
         else:
-            self.wagons = wagons
+            self._wagons = wagons
             self.wagon_num = len(wagons)
             for wagon in wagons:
                 self._add_wagon_capacities(wagon)
@@ -165,7 +171,7 @@ class Train(AbstractTransport):
 
     def attach_wagon(self, wagon: Wagon) -> None:
         self.wagon_num += 1
-        self.wagons.append(wagon)
+        self._wagons.append(wagon)
         self._capture_cargo(wagon)
 
     def detach_wagon(
@@ -173,17 +179,19 @@ class Train(AbstractTransport):
     ) -> Wagon:
         validate_non_negative(wagon_capacity, wagon_carrying_capacity)
         if (
-            wagon_capacity < self._cargo_manager.free_space
-            and wagon_carrying_capacity < self._cargo_manager.free_mass
+            self._cargo_manager.free_space - wagon_capacity < 0
+            or self._cargo_manager.free_mass - wagon_carrying_capacity < 0
         ):
-            for wagon in self.wagons:
-                if isclose(wagon.capacity, wagon_capacity) and isclose(
-                    wagon.carrying_capacity, wagon_carrying_capacity
-                ):
-                    self.wagons.remove(wagon)
-                    self.wagon_num -= 1
-                    self._release_cargo(wagon)
-                    return wagon
+            raise ImpossibleUnloading("Can't detach wagon with cargo")
+        
+        for wagon in self._wagons:
+            if isclose(wagon.capacity, wagon_capacity) and isclose(
+                wagon.carrying_capacity, wagon_carrying_capacity
+            ):
+                self._wagons.remove(wagon)
+                self.wagon_num -= 1
+                self._release_cargo(wagon)
+                return wagon
         return None
 
 

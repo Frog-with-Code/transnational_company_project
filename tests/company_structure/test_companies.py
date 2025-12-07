@@ -6,7 +6,6 @@ from company.company_structure.companies import (
 )
 from company.hr.employees import Seller
 from company.hr.enums import EmployeeRole, EmployeeClassification
-from company.common.location import Location, Region
 from company.finance.budget import Money, Currency
 from company.common.exceptions import (
     CompanyAlreadyCooperatedError,

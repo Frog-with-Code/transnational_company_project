@@ -35,7 +35,7 @@ class FinancialQualification(Enum):
     ACCA = "ACCA"
     CIMA = "CIMA"
     ACPM = "ACPM"
-    CAP = "CAP"
+    CPA = "CPA"
     CIA = "CIA"
     CFA = "CFA"
     

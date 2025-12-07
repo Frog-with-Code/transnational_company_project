@@ -1,17 +1,18 @@
 [project]
-name = "some-name"
+name = "Transnational_project"
 version = "0.0.0"
 authors = [{name = "Artem Shumilov", email = "frogwithcode@gmail.com"}]
-description = "some text"
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
+testpaths = ["tests"]
 
 [tool.coverage.run]
 source = ["src"]
 omit = [
-    "*/__main__.py",
-    "*/__init__.py",
+    "*/*/__main__.py",
+    "*/*/__init__.py",
+    "*/*/enums.py"
 ]
 
 [project.optional-dependencies]

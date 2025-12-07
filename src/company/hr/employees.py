@@ -10,7 +10,7 @@ from ..common.exceptions import EmployeePossibilityError
 
 class AbstractEmployee(ABC):
     experience = NonNegative()
-    
+
     def __init__(
         self,
         *,
@@ -45,33 +45,12 @@ class AbstractEmployee(ABC):
         pass
 
     @abstractmethod
-    def get_profession(self):
+    def profession(self):
         pass
 
     @abstractmethod
     def can_work_remotely(self) -> bool:
         pass
-
-    def get_fields(self) -> dict:
-        fields = {
-            "name": self.name,
-            "surname": self.surname,
-            "personal_id": self._personal_id,
-            "profession": self.get_profession(),
-            "role": self.role.value,
-            "classification": self.classification.value,
-            "salary": self.salary,
-            "experience": self.experience,
-        }
-
-        for field_name in self.specific_fields:
-            value = getattr(self, field_name)
-            if hasattr(value, "value"):
-                fields[field_name] = value.value
-            else:
-                fields[field_name] = value
-
-        return fields
 
     @property
     def full_name(self) -> str:
@@ -130,7 +109,8 @@ class ITSpecialist(OfficeEmployee):
 
         self.active_projects: set[str] = set()
 
-    def get_profession(self) -> str:
+    @property
+    def profession(self) -> str:
         return "it_specialist"
 
     def assign_project(self, project: str) -> None:
@@ -159,21 +139,26 @@ class Accountant(OfficeEmployee):
     ) -> None:
         super().__init__(**kwargs)
         self.erp_systems = erp_systems[:]
-        self.certifications = normalize_enum(certifications)
+        self.certifications = normalize_enum(certifications, FinancialQualification)
 
         self.audit_status: str = "none"
 
-    def get_profession(self) -> str:
+    @property
+    def profession(self) -> str:
         return "accountant"
 
     def can_handle_audit(self) -> bool:
-        audit_certs = {"CPA", "ACCA", "CIA"}
+        audit_certs = {
+            FinancialQualification.CPA,
+            FinancialQualification.ACCA,
+            FinancialQualification.CIA,
+        }
         return any(cert in audit_certs for cert in self.certifications)
 
     def start_audit(self) -> bool:
         if not self.can_handle_audit():
             raise EmployeePossibilityError("Employee can't handle audits")
-        
+
         self.audit_status = "in_progress"
 
     def end_audit(self) -> None:
@@ -190,7 +175,8 @@ class Seller(OfficeEmployee):
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
 
-    def get_profession(self) -> str:
+    @property
+    def profession(self) -> str:
         return "seller"
 
     def work(self) -> None:
@@ -201,7 +187,8 @@ class HRSpecialist(OfficeEmployee):
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
 
-    def get_profession(self) -> str:
+    @property
+    def profession(self) -> str:
         return "hr_specialist"
 
     def work(self) -> None:
@@ -219,7 +206,8 @@ class Driver(FieldEmployee):
         self.accidents: int = 0
         self.routes: set[str] = set()
 
-    def get_profession(self) -> str:
+    @property
+    def profession(self) -> str:
         return "driver"
 
     def is_valid_license(self) -> date:
@@ -254,7 +242,8 @@ class Cleaner(FieldEmployee):
 
         self.equipment: set[str] = set()
 
-    def get_profession(self) -> str:
+    @property
+    def profession(self) -> str:
         return "cleaner"
 
     def give_equipment(self, tool: str) -> None:

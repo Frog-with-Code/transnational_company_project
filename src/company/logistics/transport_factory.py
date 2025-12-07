@@ -3,9 +3,7 @@ from typing import Literal, Annotated, Union, Type
 from pydantic import BaseModel, Field, ConfigDict, TypeAdapter
 
 from ..common.location import Location
-from ..hr.employees import AbstractEmployee
-from ..products.products import AbstractProduct
-from .enums import TransportStatus, CarFuelType, ShipType
+from .enums import CarFuelType, ShipType
 from .transport import *
 
 class BaseTransportSchema(BaseModel):
@@ -24,6 +22,7 @@ class BaseTransportSchema(BaseModel):
 class TrainSchema(BaseTransportSchema):
     transport_type: Literal["train"]
     track_gauge: float = Field(ge=0)
+    wagons: list[Wagon] | None
 
 class PlaneSchema(BaseTransportSchema):
     transport_type: Literal["plane"]

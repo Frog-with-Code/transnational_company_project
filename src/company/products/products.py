@@ -9,7 +9,6 @@ class AbstractProduct(ABC):
     mass: float 
     
     def __post_init__(self):
-        for field in fields(self):
-            value = getattr(self, field.name)
-            validate_non_negative(value)
+        validate_non_negative(self.volume)
+        validate_non_negative(self.mass)
             

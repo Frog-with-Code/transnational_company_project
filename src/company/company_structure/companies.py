@@ -1,12 +1,13 @@
 from __future__ import annotations
 from abc import ABC
-from hr import AbstractEmployee
+
+from ..hr.employees import AbstractEmployee
 from ..hr.employee_manager import EmployeeManagerMixin
 from ..finance.budget import Budget, Money, Currency
 from ..common.exceptions import (
     CompanyAlreadyCooperatedError,
     CompanyNotCooperatedError,
-    CompanyOwnershipStakeError
+    CompanyOwnershipStakeError,
 )
 from ..common.location import Location
 
@@ -54,17 +55,8 @@ class AbstractCompany(ABC, EmployeeManagerMixin):
 
 
 class HeadquarterCompany(AbstractCompany):
-    def __init__(
-        self,
-        *,
-        name: str,
-        location: Location,
-        director: AbstractEmployee,
-        starting_capital: Money = None,
-    ) -> None:
-        super().__init__(
-            name=name, location=location, director=director, starting_capital=starting_capital
-        )
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
         self._subsidiaries: set[SubsidiaryCompany] = set()
         self._associated_companies: set[AssociatedCompany] = set()
 
@@ -145,18 +137,9 @@ class SubsidiaryCompany(AbstractCompany):
 
 class AssociatedCompany(AbstractCompany):
     def __init__(
-        self,
-        *,
-        name: str,
-        location: Location,
-        director: AbstractEmployee,
-        ownership_stake: float,
-        parent_company: HeadquarterCompany,
-        starting_capital: Money = None,
+        self, *, ownership_stake: float, parent_company: HeadquarterCompany, **kwargs
     ) -> None:
-        super().__init__(
-            name=name, location=location, director=director, starting_capital=starting_capital
-        )
+        super().__init__(**kwargs)
 
         if not (20 <= ownership_stake <= 50):
             raise CompanyOwnershipStakeError(

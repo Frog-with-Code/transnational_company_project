@@ -1,6 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass, replace
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from ..common.exceptions import DifferentCurrenciesError, InsufficientBudgetError
 from datetime import datetime
 from enum import Enum
@@ -11,6 +11,7 @@ class Currency(Enum):
     USD = "USD"
     EUR = "EUR"
     BYN = "BYN"
+
 
 @dataclass(frozen=True)
 class Money:
@@ -44,21 +45,29 @@ class Money:
 
     def __str__(self) -> str:
         return f"{self.amount} {self.currency}"
-    
+
     def __add__(self, other: Money) -> Money:
         self.validate_currency(other)
         return Money(self.amount + other.amount, self.currency)
-    
+
     def __sub__(self, other: Money) -> Money:
         self.validate_currency(other)
         return Money(self.amount - other.amount, self.currency)
-    
-    def __mul__(self, factor: int | float) -> Money:
+
+    def __mul__(self, factor: int | float | Decimal) -> Money:
+        validate_non_negative(factor)
         return Money(self.amount * factor, self.currency)
-    
+
+    def __truediv__(self, factor: int | float | Decimal) -> Money:
+        validate_non_negative(factor)
+        raw_amount = self.amount / factor
+        return Money(
+            raw_amount.quantize(Decimal("0.00001"), rounding=ROUND_HALF_UP),
+            self.currency,
+        )
+
     def __post_init__(self) -> None:
         validate_non_negative(self.amount)
-            
 
 
 class Budget:
@@ -79,18 +88,15 @@ class Budget:
     def withdraw(self, money: Money) -> None:
         self._balance.validate_currency(money)
         if not self._can_withdraw(money):
-            raise InsufficientBudgetError("There is not enough money in the budget for withdraw")
-        
-        self._balance = replace(
-            self._balance, amount=self._balance - money
-        )
-            
+            raise InsufficientBudgetError(
+                "There is not enough money in the budget for withdraw"
+            )
+
+        self._balance = self.balance - money
 
     def deposit(self, money: Money) -> None:
         self._balance.validate_currency(money)
-        self._balance = replace(
-            self._balance, amount=self._balance + money
-        )
+        self._balance = self.balance + money
 
 
 class CurrencyService:
@@ -102,9 +108,12 @@ class CurrencyService:
         if money.currency == target_currency:
             return money
 
-        to_usd = money * self._rates[money.currency]
-        return Money(to_usd / self._rates[target_currency], target_currency)
-    
+        conversion_factor = self._rates[money.currency] / self._rates[target_currency]
+
+        return replace(
+            money, amount=money.amount * conversion_factor, currency=target_currency
+        )
+
     @property
     def rates(self) -> dict[Currency, Decimal]:
         return self._rates.copy()

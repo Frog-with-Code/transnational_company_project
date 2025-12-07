@@ -1,10 +1,11 @@
-from .budget import Money
-from ..company_structure.companies import AbstractCompany
 from uuid import UUID, uuid4
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from typing import Optional
+
+from .budget import Money
+from ..company_structure.companies import AbstractCompany
 from ..common.exceptions import ForbiddenTransactionError
 
 class TransactionType(Enum):
@@ -23,7 +24,7 @@ class Transaction:
     source_money: Money
     target_money: Money
     source_company: Optional[AbstractCompany] = None
-    destination_company: Optional[AbstractCompany] = None
+    target_company: Optional[AbstractCompany] = None
     description: str = ""
     transaction_id: UUID = field(default_factory=uuid4)
     status: TransactionStatus = TransactionStatus.PENDING
@@ -31,11 +32,11 @@ class Transaction:
     
     def __post_init__(self):
         if self.transaction_type == TransactionType.TRANSFER:
-            if not self.source_company or not self.destination_company:
+            if not self.source_company or not self.target_company:
                 raise ForbiddenTransactionError("Transfer must have both source and destination")
         
         elif self.transaction_type == TransactionType.DEPOSIT:
-            if not self.destination_company:
+            if not self.target_company:
                 raise ForbiddenTransactionError("Deposit must have a destination")
             if self.source_company:
                 raise ForbiddenTransactionError("Deposit cannot have a source company")

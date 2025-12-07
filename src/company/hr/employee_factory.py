@@ -1,9 +1,9 @@
+from typing import Literal, Union, Annotated
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
+
 from .employees import *
 from .enums import EmployeeClassification, EmployeeRole
 from ..finance.budget import Money
-
-from typing import Literal, Union, Annotated
-from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
 
 
 class BaseEmployeeSchema(BaseModel):
@@ -17,34 +17,43 @@ class BaseEmployeeSchema(BaseModel):
     salary: Money
 
 
-class ITSpecialistSchema(BaseEmployeeSchema):
+class OfficeEmployeeSchema(BaseEmployeeSchema):
+    pass
+
+
+class FieldEmployeeSchema(BaseEmployeeSchema):
+    workwear: list[str]
+    medical_check_date: date
+
+
+class ITSpecialistSchema(OfficeEmployeeSchema):
     profession: Literal["it_specialist"]
     programming_langs: list[str]
     specialization: ITSpecialization | str
     qualification_level: ITQualificationLevel | str
 
 
-class DriverSchema(BaseEmployeeSchema):
+class DriverSchema(FieldEmployeeSchema):
     profession: Literal["driver"]
     license_category: str
     license_expire_date: date
 
 
-class AccountantSchema(BaseEmployeeSchema):
+class AccountantSchema(OfficeEmployeeSchema):
     profession: Literal["accountant"]
     erp_systems: list[str]
     certifications: list[FinancialQualification]
 
 
-class SellerSchema(BaseEmployeeSchema):
+class SellerSchema(OfficeEmployeeSchema):
     profession: Literal["seller"]
 
 
-class HRSpecialistSchema(BaseEmployeeSchema):
+class HRSpecialistSchema(OfficeEmployeeSchema):
     profession: Literal["hr_specialist"]
 
 
-class CleanerSchema(BaseEmployeeSchema):
+class CleanerSchema(FieldEmployeeSchema):
     profession: Literal["cleaner"]
     skills: list[str]
     hazardous_waste_trained: bool
@@ -103,7 +112,7 @@ class EmployeeFactory:
             valid_data = model.model_dump()
 
         except ValidationError as e:
-            raise ValueError(f"Ошибка валидации при создании сотрудника: {e}")
+            raise ValueError(f"Impossible to create employee: {e}")
 
         profession = valid_data.pop("profession")
         employee_class = self.professions[profession]

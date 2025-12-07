@@ -1,7 +1,7 @@
 from .budget import *
 from .transaction import *
 from dataclasses import replace
-from ..common.exceptions import ExceptionForbiddenTransaction
+from ..common.exceptions import ForbiddenTransactionError
 
 
 class BudgetManagementService:
@@ -17,7 +17,7 @@ class BudgetManagementService:
         description: str = "",
     ) -> Transaction:
 
-        source_money.validate_currency(source_company.balance.currency)
+        source_money.validate_currency(source_company.balance)
 
         target_money = self.currency_service.convert(
             source_money, target_company.balance.currency
@@ -80,7 +80,7 @@ class BudgetManagementService:
         )
 
         if transaction.transaction_type != TransactionType.TRANSFER:
-            raise ExceptionForbiddenTransaction("Can only refund transfers")
+            raise ForbiddenTransactionError("Can only refund transfers")
 
         self.transfer(
             source_money=transaction.target_money,

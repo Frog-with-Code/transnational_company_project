@@ -1,4 +1,4 @@
-from employees import AbstractEmployee
+from .employees import AbstractEmployee
 from ..common.exceptions import (
     EmployeeAlreadyHiredError,
     EmployeeNotHiredError,

@@ -15,5 +15,8 @@
         "Wrrooom"
     ],
     "python.defaultInterpreterPath": "/home/frog/miniconda3/envs/company_env",
-    "python.terminal.activateEnvironment": true
+    "python.terminal.activateEnvironment": true,
+    "python.testing.pytestArgs": [
+        "tests"
+    ]
 }
